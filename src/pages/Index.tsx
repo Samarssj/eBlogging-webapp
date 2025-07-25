@@ -82,20 +82,31 @@ const mockComments = [
 
 const Index = () => {
   const [likedPosts, setLikedPosts] = useState<string[]>([]);
+  const [posts, setPosts] = useState(mockPosts);
   const [selectedPost, setSelectedPost] = useState<string | null>(null);
   const [comments, setComments] = useState(mockComments);
   const { toast } = useToast();
 
   const handleLike = (postId: string) => {
+    const isLiked = likedPosts.includes(postId);
+    
     setLikedPosts(prev => {
-      const isLiked = prev.includes(postId);
       if (isLiked) {
-        toast({ description: 'Removed from favorites' });
         return prev.filter(id => id !== postId);
       } else {
-        toast({ description: 'Added to favorites ❤️' });
         return [...prev, postId];
       }
+    });
+
+    // Update the post's like count
+    setPosts(prev => prev.map(post => 
+      post.id === postId 
+        ? { ...post, likes: isLiked ? post.likes - 1 : post.likes + 1 }
+        : post
+    ));
+
+    toast({ 
+      description: isLiked ? 'Removed from favorites' : 'Added to favorites ❤️' 
     });
   };
 
@@ -145,7 +156,7 @@ const Index = () => {
         </div>
 
         <div className="space-y-6">
-          {mockPosts.map(post => (
+          {posts.map(post => (
             <BlogCard
               key={post.id}
               post={post}
