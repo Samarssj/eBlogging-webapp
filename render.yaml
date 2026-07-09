@@ -16,7 +16,6 @@ services:
   - type: web
     name: eblogging-backend
     env: node
-    plan: starter
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:
