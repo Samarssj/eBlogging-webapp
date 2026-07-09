@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BlogHeader } from '@/components/BlogHeader';
 import { BlogCard } from '@/components/BlogCard';
-import { CommentSection } from '@/components/CommentSection';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CommentSection } from '@/components/CommentSection';
+import { useNavigate } from 'react-router-dom';
 
-// Mock data
 const mockPosts = [
   {
     id: '1',
-    title: 'Building Beautiful UIs with React and Tailwind CSS',
-    excerpt: 'Learn how to create stunning user interfaces that engage users and provide excellent user experience. We\'ll explore modern design patterns, color theory, and interactive elements.',
+    title: 'Designing with Purpose: A Guide to User-Centric Web Design',
+    excerpt: 'Learn the fundamental principles of creating websites that truly serve their users and provide excellent user experience. We\'ll explore modern design patterns, color theory, and interactive elements.',
     content: 'Full content would go here...',
     author: {
       name: 'Sarah Chen',
@@ -85,11 +85,34 @@ const Index = () => {
   const [posts, setPosts] = useState(mockPosts);
   const [selectedPost, setSelectedPost] = useState<string | null>(null);
   const [comments, setComments] = useState(mockComments);
+  const [user, setUser] = useState<any>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const checkAuth = () => {
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to like or comment on posts.',
+        variant: 'destructive',
+      });
+      navigate('/auth');
+      return false;
+    }
+    return true;
+  };
 
   const handleLike = (postId: string) => {
+    if (!checkAuth()) return;
+
     const isLiked = likedPosts.includes(postId);
-    
     setLikedPosts(prev => {
       if (isLiked) {
         return prev.filter(id => id !== postId);
@@ -111,13 +134,16 @@ const Index = () => {
   };
 
   const handleComment = (postId: string) => {
+    if (!checkAuth()) return;
     setSelectedPost(postId);
   };
 
   const handleAddComment = (content: string, parentId?: string) => {
+    if (!checkAuth()) return;
+
     const newComment = {
       id: Date.now().toString(),
-      author: { name: 'You' },
+      author: { name: user.name },
       content,
       timestamp: 'now',
       likes: 0,
@@ -133,11 +159,13 @@ const Index = () => {
     } else {
       setComments(prev => [newComment, ...prev]);
     }
-    
+
     toast({ description: 'Comment added successfully!' });
   };
 
   const handleLikeComment = (commentId: string) => {
+    if (!checkAuth()) return;
+
     setComments(prev => prev.map(comment => 
       comment.id === commentId 
         ? { ...comment, isLiked: !comment.isLiked, likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1 }
@@ -146,15 +174,13 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background transition-colors duration-300">
       <BlogHeader />
-      
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-foreground mb-2">Latest Posts</h2>
           <p className="text-muted-foreground">Discover amazing content from our community</p>
         </div>
-
         <div className="space-y-6">
           {posts.map(post => (
             <BlogCard
