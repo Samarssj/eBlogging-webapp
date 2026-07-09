@@ -2,6 +2,7 @@ services:
   - type: web
     name: eblogging-frontend
     runtime: static
+    plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
@@ -16,11 +17,12 @@ services:
   - type: web
     name: eblogging-backend
     env: node
+    plan: free
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:
       - key: MONGODB_URI
-        value: mongodb+srv://ssjsamar453_db_user:<#Gokussj4>@cluster0.mbnnf3i.mongodb.net/?appName=Cluster0
+        value: "mongodb+srv://ssjsamar453_db_user:<#Gokussj4>@cluster0.mbnnf3i.mongodb.net/?appName=Cluster0"
       - key: JWT_SECRET
         generateValue: true
       - key: PORT
