@@ -2,7 +2,6 @@ services:
   - type: web
     name: eblogging-frontend
     runtime: static
-    plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
@@ -16,8 +15,8 @@ services:
 
   - type: web
     name: eblogging-backend
-    env: node
-    plan: free
+    runtime: node
+    plan: starter
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:
