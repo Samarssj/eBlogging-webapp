@@ -12,7 +12,7 @@ const About = () => {
           <div className="h-16 w-16 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-6">
             <PenTool className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-foreground mb-4">About VibeWrite</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4">About eBlogging</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             A modern blogging platform where creativity meets community. Share your stories, connect with readers, and discover amazing content.
           </p>
