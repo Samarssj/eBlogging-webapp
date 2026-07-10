@@ -200,5 +200,8 @@ If you have any questions or feedback, feel free to:
 - All contributors and supporters of this project
 
 ---
+<img width="1440" height="900" alt="Screenshot 2026-07-10 at 05 51 12" src="https://github.com/user-attachments/assets/2c498adf-bd83-433d-9667-fc12e384b84d" />
+<img width="1440" height="900" alt="Screenshot 2026-07-10 at 05 51 32" src="https://github.com/user-attachments/assets/7aab45be-3ec0-44e9-baf6-a2e3cc644129" />
+
 
 **Happy Blogging! 🚀**
