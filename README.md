@@ -19,6 +19,82 @@ Whether you're a tech enthusiast, content creator, or developer, this app offers
 
 ---
 
+## 🏗️ Architecture
+
+The application follows a modern **Client-Server Architecture** with a decoupled frontend and backend.
+
+```mermaid
+graph TD
+    subgraph Client [Frontend - React & Vite]
+        UI[User Interface - Tailwind & shadcn/ui]
+        State[State Management - React Query]
+        Router[Routing - React Router]
+    end
+
+    subgraph Server [Backend - Node.js & Express]
+        API[REST API Endpoints]
+        Auth[JWT Authentication Middleware]
+        Logic[Business Logic]
+    end
+
+    subgraph Database [Storage - MongoDB Atlas]
+        Users[(User Data)]
+        Posts[(Blog Posts)]
+        Comments[(Comments)]
+    end
+
+    UI --> State
+    State --> API
+    API --> Auth
+    Auth --> Logic
+    Logic --> Database
+```
+
+### Core Components
+- **Frontend**: A high-performance React application built with Vite, utilizing Tailwind CSS for styling and shadcn/ui for consistent, accessible components.
+- **Backend**: A robust Express.js server providing a secure RESTful API, handling authentication, data processing, and communication with the database.
+- **Database**: MongoDB Atlas serves as the NoSQL storage, providing flexibility for blog content and user-related data.
+
+---
+
+## 🔄 Application Workflow
+
+The following diagram illustrates the typical user journey and data flow within the application.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant DB
+
+    User->>Frontend: Access Application
+    Frontend->>User: Display Feed (Mock/Public Data)
+    
+    Note over User, DB: Authentication Flow
+    User->>Frontend: Signup/Login
+    Frontend->>Backend: POST /api/auth
+    Backend->>DB: Verify/Create User
+    DB-->>Backend: User Data
+    Backend-->>Frontend: JWT Token & User Profile
+    Frontend->>User: Logged In State
+
+    Note over User, DB: Content Management
+    User->>Frontend: Create New Post
+    Frontend->>Backend: POST /api/posts (with JWT)
+    Backend->>DB: Save Post
+    DB-->>Backend: Confirmation
+    Backend-->>Frontend: Success Response
+    Frontend->>User: Redirect to Feed
+```
+
+### Key Workflows
+1. **Authentication**: Users sign up or log in to receive a JSON Web Token (JWT). This token is stored locally and sent with subsequent requests to access protected routes.
+2. **Content Creation**: Authenticated users can access the writing interface to draft and publish blog posts. The backend validates the user's session before saving the content to MongoDB.
+3. **Engagement**: Users can interact with posts through likes and comments. The frontend provides real-time feedback while the backend updates the database asynchronously.
+
+---
+
 ## 🚀 Features
 
 - 🧑‍💻 User Registration & Login (JWT Auth)
