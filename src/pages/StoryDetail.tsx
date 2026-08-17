@@ -104,6 +104,21 @@ const updateDetailCommentTree = (comments: DetailComment[], commentId: string, u
   return comment;
 });
 
+const buildCommentTree = (remoteComments: ApiComment[]): DetailComment[] => {
+  const commentMap = new Map<string, DetailComment>();
+  remoteComments.forEach((comment) => commentMap.set(comment.id, { ...toDetailComment(comment), replies: [] }));
+  const roots: DetailComment[] = [];
+  remoteComments.forEach((comment) => {
+    const item = commentMap.get(comment.id)!;
+    if (comment.parentComment && commentMap.has(comment.parentComment)) {
+      commentMap.get(comment.parentComment)!.replies!.push(item);
+    } else {
+      roots.push(item);
+    }
+  });
+  return roots;
+};
+
 const StoryDetail = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
@@ -119,14 +134,23 @@ const StoryDetail = () => {
     if (!postId || storyCatalog[postId] || !isPersistedStoryId(postId)) return;
     let active = true;
     setLoadingRemoteStory(true);
-    api.get<{ post: ApiPost }>(`/api/posts/${postId}`, isAuthenticated()).then(({ post }) => {
+    Promise.all([
+      api.get<{ post: ApiPost }>(`/api/posts/${postId}`, isAuthenticated()),
+      api.get<{ comments: ApiComment[] }>(`/api/posts/${postId}/comments`, isAuthenticated()),
+    ]).then(([{ post }, { comments: remoteComments }]) => {
+      if (!active) return;
+      setRemoteStory(persistedStory(post));
+      setLiked(Boolean(post.likedByMe));
+      setSaved(Boolean(post.savedByMe));
+      setComments(buildCommentTree(remoteComments));
+    }).catch((error) => {
       if (active) {
-        setRemoteStory(persistedStory(post));
-        setLiked(post.likes > 0); // Simplified for now
+        setRemoteStory(null);
+        toast({ title: 'Could not load story', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
       }
-    }).catch(() => { if (active) setRemoteStory(null); }).finally(() => { if (active) setLoadingRemoteStory(false); });
+    }).finally(() => { if (active) setLoadingRemoteStory(false); });
     return () => { active = false; };
-  }, [postId]);
+  }, [postId, toast]);
 
   const relatedStories = useMemo(() => Object.values(storyCatalog).filter((item) => item.id !== story?.id && item.category === story?.category).slice(0, 2), [story]);
 
@@ -140,24 +164,58 @@ const StoryDetail = () => {
   };
 
   const handleLike = async () => {
-    if (!checkAuth()) return;
-    setLiked(!liked);
-    toast({ description: !liked ? 'Story liked.' : 'Like removed.' });
+    if (!checkAuth() || !postId) return;
+    if (!isPersistedStoryId(postId)) {
+      setLiked((value) => !value);
+      toast({ description: !liked ? 'Story liked.' : 'Like removed.' });
+      return;
+    }
+    try {
+      const result = await api.post<{ liked: boolean; likes: number }>(`/api/posts/${postId}/like`, {}, true);
+      setLiked(result.liked);
+      toast({ description: result.liked ? 'Story liked.' : 'Like removed.' });
+    } catch (error) {
+      toast({ title: 'Could not update like', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+    }
   };
 
   const handleAddComment = async (content: string, parentId?: string) => {
-    if (!checkAuth() || !postId) return;
-    toast({ description: 'Comment functionality coming soon to real posts!' });
+    if (!checkAuth() || !postId || !isPersistedStoryId(postId)) return;
+    try {
+      const result = await api.post<{ comment: ApiComment }>(`/api/posts/${postId}/comments`, { content, parentComment: parentId || null }, true);
+      const newComment = toDetailComment(result.comment);
+      setComments((current) => parentId
+        ? updateDetailCommentTree(current, parentId, (parent) => ({ ...parent, replies: [...(parent.replies || []), newComment] }))
+        : [newComment, ...current]);
+      toast({ description: 'Comment added.' });
+    } catch (error) {
+      toast({ title: 'Could not add comment', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+    }
   };
 
   const handleLikeComment = async (commentId: string) => {
     if (!checkAuth()) return;
+    try {
+      const result = await api.post<{ liked: boolean; likes: number }>(`/api/comments/${commentId}/like`, {}, true);
+      setComments((current) => updateDetailCommentTree(current, commentId, (comment) => ({ ...comment, isLiked: result.liked, likes: result.likes })));
+    } catch (error) {
+      toast({ title: 'Could not update comment like', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+    }
   };
 
   const handleSave = async () => {
-    if (!checkAuth()) return;
-    setSaved(!saved);
-    toast({ description: !saved ? 'Blog saved.' : 'Removed from saved.' });
+    if (!checkAuth() || !postId) return;
+    if (!isPersistedStoryId(postId)) {
+      toast({ description: 'Only database-backed posts can be saved.' });
+      return;
+    }
+    try {
+      const result = await api.post<{ saved: boolean }>(`/api/posts/${postId}/save`, {}, true);
+      setSaved(result.saved);
+      toast({ description: result.saved ? 'Blog saved.' : 'Removed from saved posts.' });
+    } catch (error) {
+      toast({ title: 'Could not update saved posts', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+    }
   };
 
   const handleShare = async () => {
@@ -205,6 +263,7 @@ const StoryDetail = () => {
               <Button variant="ghost" onClick={handleSave} className={`rounded-full ${saved ? 'bg-secondary text-primary' : 'text-muted-foreground'}`}><Bookmark className={`mr-2 h-4 w-4 ${saved ? 'fill-current' : ''}`} /> {saved ? 'Saved' : 'Save'}</Button>
               <Button variant="ghost" onClick={handleShare} className="rounded-full text-muted-foreground"><Share2 className="mr-2 h-4 w-4" /> Share</Button>
             </div>
+            {story.persisted && <div id="comments" className="mt-8"><CommentSection postId={story.id} comments={comments} onAddComment={handleAddComment} onLikeComment={handleLikeComment} /></div>}
           </article>
           <aside className="lg:pt-2">
             <div className="sticky top-24 rounded-2xl border border-border/60 bg-card/70 p-5 shadow-card">
