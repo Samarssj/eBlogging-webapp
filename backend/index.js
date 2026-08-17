@@ -39,7 +39,6 @@ const postSchema = new mongoose.Schema({
   publishedAt: { type: String, default: () => new Date().toLocaleDateString() }
 }, { timestamps: true });
 
-// Transform _id to id for frontend compatibility
 postSchema.set('toJSON', {
   transform: (document, returnedObject) => {
     returnedObject.id = returnedObject._id.toString();
@@ -82,19 +81,15 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected' });
 });
 
-// Auth Routes
 app.post('/api/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
     if (!name || !email || !password) return res.status(400).json({ message: 'All fields required' });
-    
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'User already exists' });
-
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, password: hashedPassword });
     await user.save();
-
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '1h' });
     res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
@@ -107,10 +102,8 @@ app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
-
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
-
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '1h' });
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, bio: user.bio, location: user.location, skills: user.skills } });
   } catch (err) {
@@ -118,7 +111,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Post Routes
 app.get('/api/posts', async (req, res) => {
   try {
     const posts = await Post.find({ status: 'published' }).sort({ createdAt: -1 });
@@ -138,19 +130,33 @@ app.get('/api/posts/:id', async (req, res) => {
   }
 });
 
+const FALLBACK_IMAGES = [
+  'https://images.unsplash.com/photo-1498050108023-c5249f4df085',
+  'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',
+  'https://images.unsplash.com/photo-1516116216624-53e697fedbea',
+  'https://images.unsplash.com/photo-1449247709967-d4461a6a6103',
+  'https://images.unsplash.com/photo-1455390582262-044cdead277a',
+  'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8'
+];
+
 app.post('/api/posts', authMiddleware, async (req, res) => {
   try {
     const { title, excerpt, content, image, category, readTime, status } = req.body;
     const user = await User.findById(req.userId);
     
+    // Use provided image or pick a random reliable fallback
+    const finalImage = image && image.trim() !== '' 
+      ? image 
+      : `${FALLBACK_IMAGES[Math.floor(Math.random() * FALLBACK_IMAGES.length)]}?auto=format&fit=crop&q=80&w=2000`;
+
     const newPost = new Post({
       title,
       excerpt,
       content,
-      image: image || `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}?auto=format&fit=crop&q=80&w=2000`,
-      category,
-      readTime,
-      status,
+      image: finalImage,
+      category: category || 'Perspective',
+      readTime: readTime || '5 min',
+      status: status || 'published',
       author: req.userId,
       authorName: user.name
     });
@@ -166,10 +172,7 @@ app.put('/api/posts/:id', authMiddleware, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
-
-    if (post.author.toString() !== req.userId) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
+    if (post.author.toString() !== req.userId) return res.status(401).json({ message: 'Not authorized' });
 
     const updatedPost = await Post.findByIdAndUpdate(
       req.params.id,
@@ -186,11 +189,7 @@ app.delete('/api/posts/:id', authMiddleware, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
-
-    if (post.author.toString() !== req.userId) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
-
+    if (post.author.toString() !== req.userId) return res.status(401).json({ message: 'Not authorized' });
     await Post.findByIdAndDelete(req.params.id);
     res.json({ message: 'Post removed' });
   } catch (err) {

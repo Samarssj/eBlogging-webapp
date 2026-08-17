@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { PenTool, Eye, Save, Send, ArrowLeft, Loader2, Image as ImageIcon } from 'lucide-react';
+import { PenTool, Eye, Save, Send, ArrowLeft, Loader2, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { api, ApiPost } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
@@ -109,15 +109,32 @@ const Write = () => {
                     <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A clear, memorable title" className="mt-2 text-lg font-semibold" />
                   </div>
                   <div>
-                    <Label htmlFor="image">Cover Image URL (optional)</Label>
-                    <div className="relative mt-2">
-                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="image" value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://unsplash.com/..." className="pl-10" />
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="image">Cover Image URL (optional)</Label>
+                      <a href="https://unsplash.com" target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline">
+                        Find images on Unsplash <ExternalLink className="h-3 w-3" />
+                      </a>
                     </div>
+                    <div className="relative">
+                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input id="image" value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://images.unsplash.com/photo-..." className="pl-10" />
+                    </div>
+                    {image && (
+                      <div className="mt-4 rounded-lg overflow-hidden border border-border/60 h-40 bg-muted flex items-center justify-center">
+                        <img 
+                          src={image} 
+                          alt="Live Preview" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x400?text=Invalid+Image+URL';
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="excerpt">Excerpt</Label>
-                    <Textarea id="excerpt" value={excerpt} onChange={(e) => setExcerpt(e.target.value)} placeholder="Summarize your idea" className="mt-2 min-h-[90px] resize-none" />
+                    <Textarea id="excerpt" value={excerpt} onChange={(e) => setExcerpt(e.target.value)} placeholder="Summarize your idea in a few sentences" className="mt-2 min-h-[90px] resize-none" />
                   </div>
                   <div>
                     <Label htmlFor="content">Article content</Label>
@@ -149,6 +166,9 @@ const Write = () => {
                   <Save className="mr-2 h-4 w-4" /> Save draft
                 </Button>
               )}
+              <div className="border-t border-border/60 pt-4">
+                <h4 className="mb-3 text-sm font-semibold italic text-muted-foreground text-center">Tip: Right-click an image on Unsplash and select "Copy image address" to get a direct link.</h4>
+              </div>
             </CardContent>
           </Card>
         </div>
