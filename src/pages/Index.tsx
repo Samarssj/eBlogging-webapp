@@ -13,13 +13,9 @@ const mockPosts = [
     title: 'Designing with Purpose: A Guide to User-Centric Web Design',
     excerpt: 'Learn the fundamental principles of creating websites that truly serve their users and provide excellent user experience.',
     content: 'Full content would go here...',
-    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=2072',
+    image: 'https://images.unsplash.com/photo-1586717791821-3f44a563dc4c?auto=format&fit=crop&q=80&w=2000',
     category: 'Design',
-    author: {
-      id: 'admin1',
-      name: 'Sarah Chen',
-      avatar: undefined
-    },
+    author: { id: 'admin1', name: 'Sarah Chen', avatar: undefined },
     publishedAt: '2 hours ago',
     likes: 42,
     comments: 12,
@@ -30,13 +26,9 @@ const mockPosts = [
     title: 'The Future of Web Development: What to Expect in 2024',
     excerpt: 'Exploring emerging trends in web development including AI integration, new frameworks, and the evolution of user expectations.',
     content: 'Full content would go here...',
-    image: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&q=80&w=2070',
+    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=2072',
     category: 'Technology',
-    author: {
-      id: 'admin2',
-      name: 'Alex Rodriguez',
-      avatar: undefined
-    },
+    author: { id: 'admin2', name: 'Alex Rodriguez', avatar: undefined },
     publishedAt: '6 hours ago',
     likes: 128,
     comments: 34,
@@ -49,15 +41,50 @@ const mockPosts = [
     content: 'Full content would go here...',
     image: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=2128',
     category: 'Programming',
-    author: {
-      id: 'admin3',
-      name: 'Emily Watson',
-      avatar: undefined
-    },
+    author: { id: 'admin3', name: 'Emily Watson', avatar: undefined },
     publishedAt: '1 day ago',
     likes: 89,
     comments: 21,
     readTime: '12 min'
+  },
+  {
+    id: '4',
+    title: 'A Slow Morning in a Fast-Moving City',
+    excerpt: 'Notes on attention, small rituals, and finding enough quiet to hear your own ideas arrive.',
+    content: 'Full content would go here...',
+    image: 'https://images.unsplash.com/photo-1449247709967-d4461a6a6103?auto=format&fit=crop&q=80&w=2071',
+    category: 'Lifestyle',
+    author: { id: 'admin4', name: 'Maya Patel', avatar: undefined },
+    publishedAt: '2 days ago',
+    likes: 56,
+    comments: 8,
+    readTime: '6 min'
+  },
+  {
+    id: '5',
+    title: 'The Creative Habit: Small Systems for Big Ideas',
+    excerpt: 'A gentle framework for capturing sparks, protecting focus, and turning unfinished notes into work you are proud to share.',
+    content: 'Full content would go here...',
+    image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=2000',
+    category: 'Creativity',
+    author: { id: 'admin5', name: 'Noah Williams', avatar: undefined },
+    publishedAt: '3 days ago',
+    likes: 72,
+    comments: 15,
+    readTime: '7 min'
+  },
+  {
+    id: '6',
+    title: 'Building a Personal Knowledge Garden',
+    excerpt: 'What happens when your notes become a living landscape instead of another folder full of links you never revisit.',
+    content: 'Full content would go here...',
+    image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=2000',
+    category: 'Productivity',
+    author: { id: 'admin6', name: 'Owen Brooks', avatar: undefined },
+    publishedAt: '4 days ago',
+    likes: 94,
+    comments: 19,
+    readTime: '9 min'
   }
 ];
 
@@ -102,7 +129,6 @@ const Index = () => {
   const fetchPosts = async () => {
     try {
       const dbPosts = await api.get('/api/posts');
-      // Merge mock posts with DB posts
       const formattedDbPosts = dbPosts.map((p: any) => ({
         ...p,
         author: { id: p.author, name: p.authorName }
@@ -146,7 +172,6 @@ const Index = () => {
   const handleDelete = async (postId: string) => {
     if (!checkAuth()) return;
     
-    // Check if it's a mock post (can't delete from server)
     if (mockPosts.find(p => p.id === postId)) {
       setPosts(prev => prev.filter(p => p.id !== postId));
       toast({ title: 'Post Deleted', description: 'Mock post removed from view.' });
@@ -155,7 +180,7 @@ const Index = () => {
 
     try {
       await api.delete(`/api/posts/${postId}`);
-      setPosts(prev => prev.filter(p => p._id !== postId));
+      setPosts(prev => prev.filter(p => p.id !== postId && p._id !== postId));
       toast({ title: 'Success', description: 'Post deleted successfully.' });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
