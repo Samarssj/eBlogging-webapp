@@ -11,7 +11,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// MongoDB User Model
+// --- Models ---
+
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -23,134 +24,177 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// MongoDB Connection
+const postSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  excerpt: { type: String, required: true },
+  content: { type: String, required: true },
+  image: { type: String },
+  category: { type: String, default: 'Perspective' },
+  readTime: { type: String, default: '5 min' },
+  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  authorName: { type: String, required: true },
+  likes: { type: Number, default: 0 },
+  comments: { type: Number, default: 0 },
+  status: { type: String, enum: ['draft', 'published'], default: 'published' },
+  publishedAt: { type: String, default: () => new Date().toLocaleDateString() }
+}, { timestamps: true });
+
+// Transform _id to id for frontend compatibility
+postSchema.set('toJSON', {
+  transform: (document, returnedObject) => {
+    returnedObject.id = returnedObject._id.toString();
+    delete returnedObject._id;
+    delete returnedObject.__v;
+  }
+});
+
+const Post = mongoose.model('Post', postSchema);
+
+// --- Middleware ---
+
+const authMiddleware = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+    req.userId = decoded.userId;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: 'Token is not valid' });
+  }
+};
+
+// --- Database Connection ---
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  console.error('FATAL ERROR: MONGODB_URI is not defined.');
-} else {
-  console.log('Attempting to connect to MongoDB...');
-  // Log a masked version of the URI for debugging (hiding password)
-  const maskedUri = MONGODB_URI.replace(/:([^@]+)@/, ':****@');
-  console.log('Connection String (masked):', maskedUri);
-}
-
 mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log('✅ SUCCESS: Connected to MongoDB Atlas');
-  })
+  .then(() => console.log('✅ SUCCESS: Connected to MongoDB Atlas'))
   .catch(err => {
     console.error('❌ ERROR: MongoDB Connection Failed');
     console.error('Error Details:', err.message);
-    if (err.message.includes('Authentication failed')) {
-      console.error('HINT: Check your username and password in the connection string.');
-    } else if (err.message.includes('ECONNREFUSED')) {
-      console.error('HINT: Check your MongoDB Atlas Network Access settings (allow 0.0.0.0/0).');
-    }
   });
 
-// Health check route
+// --- Routes ---
+
 app.get('/health', (req, res) => {
-  const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
-  res.status(200).json({ 
-    status: 'OK', 
-    database: dbStatus,
-    timestamp: new Date().toISOString()
-  });
+  res.status(200).json({ status: 'OK', database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected' });
 });
 
-// Routes
+// Auth Routes
 app.post('/api/signup', async (req, res) => {
-  console.log('--- Signup Attempt ---');
-  console.log('Email:', req.body.email);
-  
   try {
     const { name, email, password } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ message: 'All fields required' });
     
-    if (!name || !email || !password) {
-      console.log('Validation Failed: Missing fields');
-      return res.status(400).json({ message: 'All fields (name, email, password) are required' });
-    }
-
-    if (mongoose.connection.readyState !== 1) {
-      console.error('Database Error: Not connected to MongoDB');
-      return res.status(503).json({ message: 'Service temporarily unavailable: Database connection error' });
-    }
-
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      console.log('Signup Failed: User already exists');
-      return res.status(400).json({ message: 'User already exists' });
-    }
+    if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, password: hashedPassword });
     await user.save();
 
-    console.log('✅ User Created Successfully');
-
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '1h' });
-    res.status(201).json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email,
-        bio: user.bio,
-        location: user.location,
-        skills: user.skills
-      } 
-    });
+    res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
-    console.error('❌ Signup Exception:', err);
-    res.status(500).json({ message: 'Internal server error during signup', error: err.message });
+    res.status(500).json({ message: 'Error signing up', error: err.message });
   }
 });
 
 app.post('/api/login', async (req, res) => {
-  console.log('--- Login Attempt ---');
-  console.log('Email:', req.body.email);
-
   try {
     const { email, password } = req.body;
-    
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
-    }
-
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ message: 'Service unavailable: Database connection error' });
-    }
-
     const user = await User.findOne({ email });
-    if (!user) {
-      console.log('Login Failed: User not found');
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      console.log('Login Failed: Incorrect password');
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    console.log('✅ Login Successful');
+    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '1h' });
-    res.json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email,
-        bio: user.bio,
-        location: user.location,
-        skills: user.skills
-      } 
-    });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, bio: user.bio, location: user.location, skills: user.skills } });
   } catch (err) {
-    console.error('❌ Login Exception:', err);
-    res.status(500).json({ message: 'Internal server error during login', error: err.message });
+    res.status(500).json({ message: 'Error logging in', error: err.message });
+  }
+});
+
+// Post Routes
+app.get('/api/posts', async (req, res) => {
+  try {
+    const posts = await Post.find({ status: 'published' }).sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching posts', error: err.message });
+  }
+});
+
+app.get('/api/posts/:id', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    res.json({ post });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching post', error: err.message });
+  }
+});
+
+app.post('/api/posts', authMiddleware, async (req, res) => {
+  try {
+    const { title, excerpt, content, image, category, readTime, status } = req.body;
+    const user = await User.findById(req.userId);
+    
+    const newPost = new Post({
+      title,
+      excerpt,
+      content,
+      image: image || `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}?auto=format&fit=crop&q=80&w=2000`,
+      category,
+      readTime,
+      status,
+      author: req.userId,
+      authorName: user.name
+    });
+
+    await newPost.save();
+    res.status(201).json({ post: newPost });
+  } catch (err) {
+    res.status(500).json({ message: 'Error creating post', error: err.message });
+  }
+});
+
+app.put('/api/posts/:id', authMiddleware, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    if (post.author.toString() !== req.userId) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    const updatedPost = await Post.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }
+    );
+    res.json({ post: updatedPost });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating post', error: err.message });
+  }
+});
+
+app.delete('/api/posts/:id', authMiddleware, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    if (post.author.toString() !== req.userId) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    await Post.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Post removed' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting post', error: err.message });
   }
 });
 
