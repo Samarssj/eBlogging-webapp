@@ -5,14 +5,18 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CommentSection } from '@/components/CommentSection';
 import { useNavigate } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 const mockPosts = [
   {
     id: '1',
     title: 'Designing with Purpose: A Guide to User-Centric Web Design',
-    excerpt: 'Learn the fundamental principles of creating websites that truly serve their users and provide excellent user experience. We\'ll explore modern design patterns, color theory, and interactive elements.',
+    excerpt: 'Learn the fundamental principles of creating websites that truly serve their users and provide excellent user experience.',
     content: 'Full content would go here...',
+    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=2072',
+    category: 'Design',
     author: {
+      id: 'admin1',
       name: 'Sarah Chen',
       avatar: undefined
     },
@@ -24,9 +28,12 @@ const mockPosts = [
   {
     id: '2',
     title: 'The Future of Web Development: What to Expect in 2024',
-    excerpt: 'Exploring emerging trends in web development including AI integration, new frameworks, and the evolution of user expectations in the digital age.',
+    excerpt: 'Exploring emerging trends in web development including AI integration, new frameworks, and the evolution of user expectations.',
     content: 'Full content would go here...',
+    image: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&q=80&w=2070',
+    category: 'Technology',
     author: {
+      id: 'admin2',
       name: 'Alex Rodriguez',
       avatar: undefined
     },
@@ -38,9 +45,12 @@ const mockPosts = [
   {
     id: '3',
     title: 'Mastering TypeScript: From Beginner to Advanced',
-    excerpt: 'A comprehensive guide to TypeScript that covers everything from basic types to advanced generics and utility types. Perfect for developers looking to level up.',
+    excerpt: 'A comprehensive guide to TypeScript that covers everything from basic types to advanced generics and utility types.',
     content: 'Full content would go here...',
+    image: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=2128',
+    category: 'Programming',
     author: {
+      id: 'admin3',
       name: 'Emily Watson',
       avatar: undefined
     },
@@ -69,20 +79,12 @@ const mockComments = [
         isLiked: false
       }
     ]
-  },
-  {
-    id: '3',
-    author: { name: 'Mike Johnson' },
-    content: 'I\'ve been struggling with this topic for weeks. This explanation finally made it click!',
-    timestamp: '4 hours ago',
-    likes: 12,
-    isLiked: true
   }
 ];
 
 const Index = () => {
   const [likedPosts, setLikedPosts] = useState<string[]>([]);
-  const [posts, setPosts] = useState(mockPosts);
+  const [posts, setPosts] = useState<any[]>([]);
   const [selectedPost, setSelectedPost] = useState<string | null>(null);
   const [comments, setComments] = useState(mockComments);
   const [user, setUser] = useState<any>(null);
@@ -94,13 +96,28 @@ const Index = () => {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    fetchPosts();
   }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const dbPosts = await api.get('/api/posts');
+      // Merge mock posts with DB posts
+      const formattedDbPosts = dbPosts.map((p: any) => ({
+        ...p,
+        author: { id: p.author, name: p.authorName }
+      }));
+      setPosts([...formattedDbPosts, ...mockPosts]);
+    } catch (err) {
+      setPosts(mockPosts);
+    }
+  };
 
   const checkAuth = () => {
     if (!user) {
       toast({
         title: 'Authentication Required',
-        description: 'Please log in to like or comment on posts.',
+        description: 'Please log in to perform this action.',
         variant: 'destructive',
       });
       navigate('/auth');
@@ -111,26 +128,14 @@ const Index = () => {
 
   const handleLike = (postId: string) => {
     if (!checkAuth()) return;
-
     const isLiked = likedPosts.includes(postId);
-    setLikedPosts(prev => {
-      if (isLiked) {
-        return prev.filter(id => id !== postId);
-      } else {
-        return [...prev, postId];
-      }
-    });
-
-    // Update the post's like count
+    setLikedPosts(prev => isLiked ? prev.filter(id => id !== postId) : [...prev, postId]);
     setPosts(prev => prev.map(post => 
-      post.id === postId 
+      post.id === postId || post._id === postId
         ? { ...post, likes: isLiked ? post.likes - 1 : post.likes + 1 }
         : post
     ));
-
-    toast({ 
-      description: isLiked ? 'Removed from favorites' : 'Added to favorites ❤️' 
-    });
+    toast({ description: isLiked ? 'Removed from favorites' : 'Added to favorites ❤️' });
   };
 
   const handleComment = (postId: string) => {
@@ -138,9 +143,27 @@ const Index = () => {
     setSelectedPost(postId);
   };
 
+  const handleDelete = async (postId: string) => {
+    if (!checkAuth()) return;
+    
+    // Check if it's a mock post (can't delete from server)
+    if (mockPosts.find(p => p.id === postId)) {
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      toast({ title: 'Post Deleted', description: 'Mock post removed from view.' });
+      return;
+    }
+
+    try {
+      await api.delete(`/api/posts/${postId}`);
+      setPosts(prev => prev.filter(p => p._id !== postId));
+      toast({ title: 'Success', description: 'Post deleted successfully.' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  };
+
   const handleAddComment = (content: string, parentId?: string) => {
     if (!checkAuth()) return;
-
     const newComment = {
       id: Date.now().toString(),
       author: { name: user.name },
@@ -149,7 +172,6 @@ const Index = () => {
       likes: 0,
       isLiked: false
     };
-
     if (parentId) {
       setComments(prev => prev.map(comment => 
         comment.id === parentId 
@@ -159,13 +181,11 @@ const Index = () => {
     } else {
       setComments(prev => [newComment, ...prev]);
     }
-
     toast({ description: 'Comment added successfully!' });
   };
 
   const handleLikeComment = (commentId: string) => {
     if (!checkAuth()) return;
-
     setComments(prev => prev.map(comment => 
       comment.id === commentId 
         ? { ...comment, isLiked: !comment.isLiked, likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1 }
@@ -184,16 +204,17 @@ const Index = () => {
         <div className="space-y-6">
           {posts.map(post => (
             <BlogCard
-              key={post.id}
+              key={post.id || post._id}
               post={post}
               onLike={handleLike}
               onComment={handleComment}
-              isLiked={likedPosts.includes(post.id)}
+              onDelete={handleDelete}
+              isLiked={likedPosts.includes(post.id || post._id)}
+              currentUserId={user?.id}
             />
           ))}
         </div>
       </main>
-
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
