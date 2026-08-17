@@ -13,7 +13,7 @@ const mockPosts = [
     title: 'Designing with Purpose: A Guide to User-Centric Web Design',
     excerpt: 'Learn the fundamental principles of creating websites that truly serve their users and provide excellent user experience.',
     content: 'Full content would go here...',
-    image: 'https://images.unsplash.com/photo-1586717791821-3f44a563dc4c?auto=format&fit=crop&q=80&w=2000',
+    image: 'https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=2000',
     category: 'Design',
     author: { id: 'admin1', name: 'Sarah Chen', avatar: undefined },
     publishedAt: '2 hours ago',
@@ -221,12 +221,12 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
       <BlogHeader />
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-foreground mb-2">Latest Posts</h2>
           <p className="text-muted-foreground">Discover amazing content from our community</p>
         </div>
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {posts.map(post => (
             <BlogCard
               key={post.id || post._id}

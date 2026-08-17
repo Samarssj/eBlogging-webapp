@@ -228,21 +228,23 @@ const Trending = () => {
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_310px]">
           <div className="space-y-6">
             <div className="flex items-center gap-3"><div className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"><TrendingUp className="h-4 w-4" /> Hot right now</div><div className="rounded-full bg-muted px-4 py-2 text-sm text-muted-foreground">{posts.length} stories in the spotlight</div></div>
-            {posts.map((post, index) => (
-              <div key={post.id} className="relative pl-4 sm:pl-8">
-                <div className="absolute left-0 top-5 z-10 grid h-8 w-8 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-md shadow-primary/20">#{index + 1}</div>
-                <BlogCard 
-                  post={post as any} 
-                  onLike={handleLike} 
-                  onComment={(postId) => { if (checkAuth()) setSelectedPost(postId); }} 
-                  onSave={handleSave} 
-                  onOpen={(postId) => navigate(`/story/${postId}`)} 
-                  isLiked={likedPosts.includes(post.id)} 
-                  isSaved={savedPosts.includes(post.id)}
-                  currentUserId={user?.id}
-                />
-              </div>
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {posts.map((post, index) => (
+                <div key={post.id} className="relative pl-4 sm:pl-8">
+                  <div className="absolute left-0 top-5 z-10 grid h-8 w-8 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-md shadow-primary/20">#{index + 1}</div>
+                  <BlogCard 
+                    post={post as any} 
+                    onLike={handleLike} 
+                    onComment={(postId) => { if (checkAuth()) setSelectedPost(postId); }} 
+                    onSave={handleSave} 
+                    onOpen={(postId) => navigate(`/story/${postId}`)} 
+                    isLiked={likedPosts.includes(post.id)} 
+                    isSaved={savedPosts.includes(post.id)}
+                    currentUserId={user?.id}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           <aside className="space-y-6">
