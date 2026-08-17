@@ -10,6 +10,7 @@ import About from "./pages/About";
 import Write from "./pages/Write";
 import Profile from "./pages/Profile";
 import Trending from "./pages/Trending";
+import StoryDetail from "./pages/StoryDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/write" element={<Write />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/trending" element={<Trending />} />
+          <Route path="/story/:postId" element={<StoryDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
