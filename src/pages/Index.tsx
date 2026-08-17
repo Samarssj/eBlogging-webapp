@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { CommentSection } from '@/components/CommentSection';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 
 const mockPosts = [
   {
