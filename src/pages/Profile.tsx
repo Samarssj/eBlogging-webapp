@@ -17,6 +17,7 @@ const Profile = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedUser, setEditedUser] = useState<any>(null);
   const [myPosts, setMyPosts] = useState<ApiPost[]>([]);
+  const [likedPosts, setLikedPosts] = useState<ApiPost[]>([]);
   const [savedPosts, setSavedPosts] = useState<ApiPost[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -24,11 +25,13 @@ const Profile = () => {
 
   const refreshProfilePosts = async () => {
     try {
-      const [authored, saved] = await Promise.all([
+      const [authored, liked, saved] = await Promise.all([
         api.get<{ posts: ApiPost[] }>('/api/profile/posts', true),
+        api.get<{ posts: ApiPost[] }>('/api/profile/liked', true),
         api.get<{ posts: ApiPost[] }>('/api/profile/saved', true),
       ]);
       setMyPosts(authored.posts);
+      setLikedPosts(liked.posts);
       setSavedPosts(saved.posts);
     } catch (error) {
       toast({ title: 'Could not load your posts', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
@@ -68,7 +71,9 @@ const Profile = () => {
       const result = await api.post<{ liked: boolean; likes: number }>(`/api/posts/${postId}/like`, {}, true);
       const update = (post: ApiPost) => post.id === postId ? { ...post, likes: result.likes, likedByMe: result.liked } : post;
       setMyPosts((posts) => posts.map(update));
+      setLikedPosts((posts) => result.liked ? posts.map(update) : posts.filter((post) => post.id !== postId));
       setSavedPosts((posts) => posts.map(update));
+      if (result.liked && !likedPosts.some((post) => post.id === postId)) await refreshProfilePosts();
     } catch (error) {
       toast({ title: 'Could not update like', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
     }
@@ -90,6 +95,7 @@ const Profile = () => {
     try {
       await api.delete(`/api/posts/${postId}`);
       setMyPosts((posts) => posts.filter((post) => post.id !== postId));
+      setLikedPosts((posts) => posts.filter((post) => post.id !== postId));
       setSavedPosts((posts) => posts.filter((post) => post.id !== postId));
       toast({ title: 'Post deleted', description: 'Your blog has been deleted.' });
     } catch (error) {
@@ -186,9 +192,12 @@ const Profile = () => {
         </Card>
 
         <Tabs defaultValue="posts" className="w-full">
-          <TabsList className="mb-8 grid w-full grid-cols-3"><TabsTrigger value="posts">My Posts</TabsTrigger><TabsTrigger value="saved">Saved Posts</TabsTrigger><TabsTrigger value="drafts">Drafts</TabsTrigger></TabsList>
+          <TabsList className="mb-8 grid w-full grid-cols-4"><TabsTrigger value="posts">My Posts</TabsTrigger><TabsTrigger value="liked">Liked Posts</TabsTrigger><TabsTrigger value="saved">Saved Posts</TabsTrigger><TabsTrigger value="drafts">Drafts</TabsTrigger></TabsList>
           <TabsContent value="posts" className="space-y-5">
             {loading ? <div className="py-12 text-center text-muted-foreground"><Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />Loading your posts…</div> : publishedPosts.length ? publishedPosts.map((post) => renderPostCard(post, true)) : <Card className="py-12 text-center"><CardContent><PenLine className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" /><p className="text-muted-foreground">You have not published any blogs yet.</p><Button onClick={() => navigate('/write')} className="mt-5 rounded-full">Write your first blog</Button></CardContent></Card>}
+          </TabsContent>
+          <TabsContent value="liked" className="space-y-5">
+            {loading ? <div className="py-12 text-center text-muted-foreground"><Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />Loading liked posts…</div> : likedPosts.length ? likedPosts.map((post) => renderPostCard(post, post.author === user.id)) : <Card className="py-12 text-center"><CardContent><Heart className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" /><p className="text-muted-foreground">Posts you like will appear here.</p></CardContent></Card>}
           </TabsContent>
           <TabsContent value="saved" className="space-y-5">
             {loading ? <div className="py-12 text-center text-muted-foreground"><Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin" />Loading saved posts…</div> : savedPosts.length ? savedPosts.map((post) => renderPostCard(post, post.author === user.id)) : <Card className="py-12 text-center"><CardContent><Bookmark className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" /><p className="text-muted-foreground">Posts you save will appear here.</p></CardContent></Card>}

@@ -191,6 +191,15 @@ app.get('/api/profile/saved', authMiddleware, async (req, res) => {
   }
 });
 
+app.get('/api/profile/liked', authMiddleware, async (req, res) => {
+  try {
+    const posts = await Post.find({ likedBy: req.userId, status: 'published' }).sort({ updatedAt: -1 });
+    res.json({ posts: posts.map((post) => serializePost(post, req.userId)) });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching liked posts', error: err.message });
+  }
+});
+
 app.get('/api/posts/:id', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
