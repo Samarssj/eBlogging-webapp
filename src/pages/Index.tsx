@@ -273,6 +273,7 @@ const Index = () => {
               onLike={handleLike}
               onComment={handleComment}
               onDelete={handleDelete}
+              onOpen={(id) => navigate(`/story/${id}`)}
               isLiked={likedPosts.includes(post.id || post._id)}
               currentUserId={user?.id}
             />
