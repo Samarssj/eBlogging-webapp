@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BlogHeader } from '@/components/BlogHeader';
+import { ArrowRight, BookOpen, Clock3, Sparkles, Users } from 'lucide-react';
 import { BlogCard } from '@/components/BlogCard';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -260,12 +261,46 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
       <BlogHeader />
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">Latest Posts</h2>
-          <p className="text-muted-foreground">Discover amazing content from our community</p>
+      <section className="relative overflow-hidden border-b border-border/60 bg-card/20">
+        <div className="absolute inset-0 opacity-55 [background-image:linear-gradient(hsl(var(--border)/0.42)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.42)_1px,transparent_1px)] [background-size:36px_36px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_42%,hsl(var(--primary)/0.12),transparent_25%),radial-gradient(circle_at_23%_62%,hsl(var(--primary)/0.08),transparent_30%)]" />
+        <div className="container relative mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:gap-16 lg:py-24">
+          <div className="max-w-2xl">
+            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-primary"><Sparkles className="h-3.5 w-3.5" /> Ideas worth keeping</div>
+            <h1 className="max-w-xl font-serif text-5xl font-semibold leading-[0.98] tracking-tight text-foreground sm:text-6xl lg:text-7xl">Stories for the <span className="text-primary">curious</span> mind.</h1>
+            <p className="mt-7 max-w-xl text-lg leading-8 text-muted-foreground">A thoughtful corner of the internet for essays, experiments, and the people making sense of what comes next.</p>
+            <div className="mt-9 flex flex-wrap items-center gap-5">
+              <Button onClick={() => document.getElementById('feed')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-full bg-primary px-6 text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90">Explore the feed <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Button variant="ghost" onClick={() => navigate('/write')} className="rounded-full px-2 text-foreground hover:bg-transparent hover:text-primary">Share your perspective <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            </div>
+            <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 border-t border-border/60 pt-6 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-2"><Users className="h-4 w-4 text-primary" />12k+ readers</span>
+              <span className="inline-flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary" />480+ stories</span>
+              <span className="inline-flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary" />Always worth a read</span>
+            </div>
+          </div>
+          <div className="mx-auto w-full max-w-xl rounded-[2rem] border border-white/50 bg-background/40 p-3 shadow-2xl shadow-black/20">
+            <div className="relative min-h-[390px] overflow-hidden rounded-[1.5rem] border border-white/40 bg-[radial-gradient(circle_at_80%_85%,rgba(42,117,119,0.8),transparent_35%),radial-gradient(circle_at_16%_18%,rgba(246,132,81,0.98),transparent_42%),linear-gradient(135deg,#f18b55_0%,#e5b654_52%,#87a77b_100%)] p-7 text-white sm:p-9">
+              <div className="absolute -right-10 -top-10 h-56 w-56 rounded-full border border-white/30" />
+              <div className="absolute -bottom-20 left-10 h-52 w-52 rounded-full border border-white/25" />
+              <div className="relative flex h-full min-h-[318px] flex-col">
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.2em] text-white/85"><span>Issue 04</span><span>2026 / 08</span></div>
+                <div className="mt-9 text-xs font-bold uppercase tracking-[0.18em] text-white/85">The cover story</div>
+                <h2 className="mt-4 max-w-sm font-serif text-4xl font-semibold leading-[0.98] sm:text-5xl">Make room for better questions.</h2>
+                <p className="mt-6 max-w-sm text-sm leading-6 text-white/90">A weekly collection of fresh perspectives from the eBlogging community.</p>
+                <div className="mt-auto flex items-center justify-between border-t border-white/35 pt-5 text-sm font-medium text-white/90"><span>Read, reflect, respond.</span><span className="grid h-10 w-10 place-items-center rounded-full border border-white/50"><ArrowRight className="h-4 w-4" /></span></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      </section>
+      <main id="feed" className="container mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:py-16">
+        <div className="mb-8">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-primary">Fresh from the community</p>
+          <h2 className="font-serif text-4xl font-semibold text-foreground">Latest Posts</h2>
+          <p className="mt-2 text-muted-foreground">Discover amazing content from our community</p>
+        </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {posts.map(post => (
             <BlogCard
               key={post.id || post._id}
