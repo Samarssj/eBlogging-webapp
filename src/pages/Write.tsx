@@ -110,14 +110,15 @@ const Write = () => {
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="image">Cover Image URL (optional)</Label>
+                      <Label htmlFor="image">Cover Image — paste the copied image address (optional)</Label>
                       <a href="https://unsplash.com" target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline">
                         Find images on Unsplash <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
                     <div className="relative">
                       <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="image" value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://images.unsplash.com/photo-..." className="pl-10" />
+                      <Input id="image" value={image} onChange={(e) => setImage(e.target.value)} placeholder="Paste the copied image address here (not the image page URL)" className="pl-10" />
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">On Unsplash, right-click the image itself and choose <strong>Copy image address</strong>. Do not paste the browser page URL.</p>
                     </div>
                     {image && (
                       <div className="mt-4 rounded-lg overflow-hidden border border-border/60 h-40 bg-muted flex items-center justify-center">
@@ -167,7 +168,7 @@ const Write = () => {
                 </Button>
               )}
               <div className="border-t border-border/60 pt-4">
-                <h4 className="mb-3 text-sm font-semibold italic text-muted-foreground text-center">Tip: Right-click an image on Unsplash and select "Copy image address" to get a direct link.</h4>
+                <h4 className="mb-3 text-sm font-semibold italic text-muted-foreground text-center">Image tip: right-click the actual image and select "Copy image address." Paste that address—not the Unsplash webpage URL.</h4>
               </div>
             </CardContent>
           </Card>

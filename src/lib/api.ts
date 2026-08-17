@@ -2,94 +2,75 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 export interface ApiPost {
   id: string;
-  _id?: string;
   title: string;
   excerpt: string;
   content: string;
+  image?: string;
   author: string;
   authorName: string;
   category: string;
   readTime: string;
-  image?: string;
   likes: number;
   comments: number;
+  status: 'draft' | 'published';
   publishedAt: string;
   createdAt: string;
   updatedAt: string;
+  likedByMe?: boolean;
+  savedByMe?: boolean;
 }
 
-export const api = {
-  async get<T = any>(endpoint: string, authenticated = false): Promise<T> {
-    const headers: HeadersInit = {};
-    if (authenticated) {
-      const token = localStorage.getItem('token');
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-    }
+export interface ApiComment {
+  id: string;
+  author: { id: string; name: string };
+  content: string;
+  parentComment?: string | null;
+  createdAt: string;
+  likes: number;
+  likedByMe?: boolean;
+}
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'GET',
-      headers,
-    });
-    
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Something went wrong');
-    return result;
+const makeHeaders = (authenticated: boolean, json = false): HeadersInit => {
+  const headers: HeadersInit = json ? { 'Content-Type': 'application/json' } : {};
+  if (authenticated) {
+    const token = localStorage.getItem('token');
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+};
+
+const parseResponse = async <T>(response: Response): Promise<T> => {
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || 'Something went wrong');
+  return result as T;
+};
+
+export const api = {
+  async get<T = unknown>(endpoint: string, authenticated = false): Promise<T> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, { method: 'GET', headers: makeHeaders(authenticated) });
+    return parseResponse<T>(response);
   },
 
-  async post<T = any>(endpoint: string, data: any, authenticated = false): Promise<T> {
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    if (authenticated) {
-      const token = localStorage.getItem('token');
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-    }
-
+  async post<T = unknown>(endpoint: string, data: unknown, authenticated = false): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
-      headers,
+      headers: makeHeaders(authenticated, true),
       body: JSON.stringify(data),
     });
-    
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Something went wrong');
-    return result;
+    return parseResponse<T>(response);
   },
 
-  async put<T = any>(endpoint: string, data: any, authenticated = false): Promise<T> {
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    if (authenticated) {
-      const token = localStorage.getItem('token');
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-    }
-
+  async put<T = unknown>(endpoint: string, data: unknown, authenticated = false): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'PUT',
-      headers,
+      headers: makeHeaders(authenticated, true),
       body: JSON.stringify(data),
     });
-    
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Something went wrong');
-    return result;
+    return parseResponse<T>(response);
   },
 
-  async delete<T = any>(endpoint: string, authenticated = true): Promise<T> {
-    const headers: HeadersInit = {};
-    if (authenticated) {
-      const token = localStorage.getItem('token');
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'DELETE',
-      headers,
-    });
-    
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Something went wrong');
-    return result;
+  async delete<T = unknown>(endpoint: string, authenticated = true): Promise<T> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, { method: 'DELETE', headers: makeHeaders(authenticated) });
+    return parseResponse<T>(response);
   },
 };

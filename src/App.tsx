@@ -27,6 +27,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/about" element={<About />} />
           <Route path="/write" element={<Write />} />
+          <Route path="/write/:postId" element={<Write />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/trending" element={<Trending />} />
           <Route path="/story/:postId" element={<StoryDetail />} />
