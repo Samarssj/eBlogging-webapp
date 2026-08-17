@@ -93,12 +93,81 @@ const trendingPosts: TrendingPost[] = [
     category: 'UI / UX', 
     accent: 'from-rose-400 via-orange-400 to-amber-500', 
     image: 'https://images.unsplash.com/photo-1586717791821-3f44a563dc4c?auto=format&fit=crop&q=80&w=2000' 
+  },
+  { 
+    id: 't5', 
+    title: 'TypeScript Patterns That Make Teams Move Faster', 
+    excerpt: 'A practical collection of type patterns that reduce bugs, improve code review, and make complex systems easier to navigate.', 
+    content: 'Full content...', 
+    author: { id: 'admin5', name: 'Theo Brooks' }, 
+    publishedAt: '4 days ago', 
+    likes: 348, 
+    comments: 48, 
+    readTime: '11 min', 
+    category: 'TypeScript', 
+    accent: 'from-blue-400 via-cyan-500 to-sky-700', 
+    image: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=2000' 
+  },
+  { 
+    id: 't6', 
+    title: 'The Quiet Power of a Well-Timed Refactor', 
+    excerpt: 'How to recognize when technical debt is slowing the team down and make improvements without stopping momentum.', 
+    content: 'Full content...', 
+    author: { id: 'admin6', name: 'Amara Okafor' }, 
+    publishedAt: '5 days ago', 
+    likes: 306, 
+    comments: 42, 
+    readTime: '8 min', 
+    category: 'Engineering', 
+    accent: 'from-emerald-400 via-green-500 to-lime-600', 
+    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=2000' 
+  },
+  { 
+    id: 't7', 
+    title: 'What We Get Wrong About Productivity Tools', 
+    excerpt: 'More dashboards do not always mean more clarity. A closer look at the tools and rituals that genuinely help.', 
+    content: 'Full content...', 
+    author: { id: 'admin7', name: 'Rina Das' }, 
+    publishedAt: '6 days ago', 
+    likes: 284, 
+    comments: 39, 
+    readTime: '7 min', 
+    category: 'Productivity', 
+    accent: 'from-fuchsia-400 via-pink-500 to-rose-600', 
+    image: 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&q=80&w=2000' 
+  },
+  { 
+    id: 't8', 
+    title: 'A Field Guide to Better Technical Writing', 
+    excerpt: 'Clear documentation is a product feature. These simple practices help ideas travel further across a team.', 
+    content: 'Full content...', 
+    author: { id: 'admin8', name: 'Jon Bell' }, 
+    publishedAt: '1 week ago', 
+    likes: 251, 
+    comments: 33, 
+    readTime: '6 min', 
+    category: 'Writing', 
+    accent: 'from-amber-300 via-yellow-500 to-orange-600', 
+    image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=2000' 
+  },
+  { 
+    id: 't9', 
+    title: 'Why Open Source Communities Keep Reinventing Belonging', 
+    excerpt: 'The social patterns behind healthy contributor communities, and what product teams can learn from them.', 
+    content: 'Full content...', 
+    author: { id: 'admin9', name: 'Nadia Flores' }, 
+    publishedAt: '1 week ago', 
+    likes: 219, 
+    comments: 28, 
+    readTime: '8 min', 
+    category: 'Community', 
+    accent: 'from-violet-400 via-purple-500 to-indigo-700', 
+    image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=2000' 
   }
 ];
 
 const defaultCommentsByPost: Record<string, SeedComment[]> = {
   t1: [{ id: 't1-1', author: { name: 'Elena Moore' }, content: 'This is one of the most balanced introductions to the topic I have read.', timestamp: '2 hours ago', likes: 24, isLiked: false }],
-  t2: [{ id: 't2-1', author: { name: 'Kim Tran' }, content: 'The production lessons are incredibly practical.', timestamp: '6 hours ago', likes: 16, isLiked: false }],
 };
 
 const trendingTopics = [
