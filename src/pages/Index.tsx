@@ -85,6 +85,45 @@ const mockPosts = [
     likes: 94,
     comments: 19,
     readTime: '9 min'
+  },
+  {
+    id: '7',
+    title: 'Why Curiosity Is a Better Career Compass Than Certainty',
+    excerpt: 'The questions we keep returning to can reveal more about our next chapter than any five-year plan.',
+    content: 'Full content would go here...',
+    image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=2070',
+    category: 'Perspective',
+    author: { id: 'admin7', name: 'Priya Shah', avatar: undefined },
+    publishedAt: '5 days ago',
+    likes: 63,
+    comments: 11,
+    readTime: '8 min'
+  },
+  {
+    id: '8',
+    title: 'The Night Sky Is a Reminder to Think in Longer Timelines',
+    excerpt: 'A field note on scale, patience, and the strange comfort of remembering that every breakthrough starts small.',
+    content: 'Full content would go here...',
+    image: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&q=80&w=2013',
+    category: 'Science',
+    author: { id: 'admin8', name: 'Elias Green', avatar: undefined },
+    publishedAt: '1 week ago',
+    likes: 112,
+    comments: 24,
+    readTime: '5 min'
+  },
+  {
+    id: '9',
+    title: 'The Quiet Power of a Well-Timed Refactor',
+    excerpt: 'How to recognize when technical debt is slowing the team down and make improvements without stopping momentum.',
+    content: 'Full content would go here...',
+    image: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=2070',
+    category: 'Engineering',
+    author: { id: 'admin9', name: 'Amara Okafor', avatar: undefined },
+    publishedAt: '1 week ago',
+    likes: 85,
+    comments: 14,
+    readTime: '8 min'
   }
 ];
 
