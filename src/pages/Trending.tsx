@@ -92,7 +92,7 @@ const trendingPosts: TrendingPost[] = [
     readTime: '9 min', 
     category: 'UI / UX', 
     accent: 'from-rose-400 via-orange-400 to-amber-500', 
-    image: 'https://images.unsplash.com/photo-1586717791821-3f44a563dc4c?auto=format&fit=crop&q=80&w=2000' 
+    image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=2070' 
   },
   { 
     id: 't5', 
