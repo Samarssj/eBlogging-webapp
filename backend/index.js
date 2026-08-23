@@ -151,7 +151,7 @@ const getLatestGeminiModel = async () => {
     return right[0] - left[0] || right[1] - left[1] || right[2] - left[2] || right[3].localeCompare(left[3]);
   });
 
-  cachedGeminiModel = candidates[0] || process.env.GEMINI_MODEL_FALLBACK || DEFAULT_GEMINI_MODEL;
+  cachedGeminiModel = candidates[0] || process.env.GEMINI_FALLBACK_MODEL || process.env.GEMINI_MODEL_FALLBACK || DEFAULT_GEMINI_MODEL;
   cachedGeminiModelExpiresAt = Date.now() + MODEL_CACHE_TTL_MS;
   console.log(`Using dynamically selected Gemini model: ${cachedGeminiModel}`);
   return cachedGeminiModel;
@@ -248,10 +248,10 @@ app.post('/api/ai/blog-ideas', authMiddleware, async (req, res) => {
     });
 
     let response = await requestGemini(model);
-    if (!response.ok && model !== (process.env.GEMINI_MODEL_FALLBACK || DEFAULT_GEMINI_MODEL)) {
+    if (!response.ok && model !== (process.env.GEMINI_FALLBACK_MODEL || process.env.GEMINI_MODEL_FALLBACK || DEFAULT_GEMINI_MODEL)) {
       cachedGeminiModel = null;
       cachedGeminiModelExpiresAt = 0;
-      response = await requestGemini(process.env.GEMINI_MODEL_FALLBACK || DEFAULT_GEMINI_MODEL);
+      response = await requestGemini(process.env.GEMINI_FALLBACK_MODEL || process.env.GEMINI_MODEL_FALLBACK || DEFAULT_GEMINI_MODEL);
     }
 
     if (!response.ok) {
