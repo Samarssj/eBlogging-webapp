@@ -74,6 +74,89 @@ const authMiddleware = (req, res, next) => {
   next();
 };
 
+const LOCAL_BLOG_IDEAS = [
+  {
+    title: 'The small habits that make creative work sustainable',
+    angle: 'Share a practical weekly routine, including what you stopped doing and what finally made your process easier.',
+    why: 'A relatable, experience-led topic that gives readers actionable advice without needing a huge audience.'
+  },
+  {
+    title: 'What I learned from building in public',
+    angle: 'Tell the honest story behind one project decision, including the uncertainty, feedback, and result.',
+    why: 'Readers connect with specific lessons and behind-the-scenes decisions more than polished success stories.'
+  },
+  {
+    title: 'A beginner-friendly guide to one tool I use every week',
+    angle: 'Walk through one useful tool with a simple example, common mistakes, and a quick checklist.',
+    why: 'A focused tutorial can be helpful, searchable, and easy to turn into a clear, well-structured post.'
+  },
+  {
+    title: 'The idea I changed my mind about',
+    angle: 'Compare your earlier opinion with what changed it, using evidence or a personal experience.',
+    why: 'Thoughtful perspective pieces invite conversation and help readers understand how your thinking evolved.'
+  },
+  {
+    title: 'Five questions I ask before starting something new',
+    angle: 'Turn your decision-making process into a short framework readers can reuse for their own work or life.',
+    why: 'A simple framework makes an authentic personal post useful, memorable, and easy to scan.'
+  }
+];
+
+const getGeminiText = (payload) => payload?.candidates?.[0]?.content?.parts
+  ?.map((part) => part.text || '')
+  .join('')
+  .trim() || '';
+
+const parseGeminiIdeas = (text) => {
+  const cleaned = text.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/i, '').trim();
+  const parsed = JSON.parse(cleaned);
+  const ideas = Array.isArray(parsed) ? parsed : parsed.ideas;
+  if (!Array.isArray(ideas)) throw new Error('Gemini returned an unexpected format');
+  return ideas.slice(0, 5).map((idea) => ({
+    title: String(idea.title || '').trim(),
+    angle: String(idea.angle || idea.description || '').trim(),
+    why: String(idea.why || idea.reason || '').trim()
+  })).filter((idea) => idea.title && idea.angle && idea.why);
+};
+
+const MODEL_CACHE_TTL_MS = 15 * 60 * 1000;
+const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest';
+let cachedGeminiModel = null;
+let cachedGeminiModelExpiresAt = 0;
+
+const getLatestGeminiModel = async () => {
+  if (cachedGeminiModel && Date.now() < cachedGeminiModelExpiresAt) return cachedGeminiModel;
+
+  const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000', {
+    headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY }
+  });
+  if (!response.ok) throw new Error(`Gemini model discovery failed with status ${response.status}`);
+
+  const { models = [] } = await response.json();
+  const candidates = models
+    .filter((model) => model.supportedGenerationMethods?.includes('generateContent'))
+    .map((model) => model.baseModelId || model.name?.split('/').pop())
+    .filter((model) => model && /^gemini-\d+(?:\.\d+)?-(?:flash|pro)(?:-lite)?$/i.test(model));
+
+  const versionScore = (model) => {
+    const match = model.match(/^gemini-(\d+)(?:\.(\d+))?-(flash|pro)/i);
+    if (!match) return [-1, -1, -1, model];
+    const familyScore = match[3].toLowerCase() === 'pro' ? 2 : 1;
+    return [Number(match[1]), Number(match[2] || 0), familyScore, model];
+  };
+
+  candidates.sort((a, b) => {
+    const left = versionScore(a);
+    const right = versionScore(b);
+    return right[0] - left[0] || right[1] - left[1] || right[2] - left[2] || right[3].localeCompare(left[3]);
+  });
+
+  cachedGeminiModel = candidates[0] || process.env.GEMINI_MODEL_FALLBACK || DEFAULT_GEMINI_MODEL;
+  cachedGeminiModelExpiresAt = Date.now() + MODEL_CACHE_TTL_MS;
+  console.log(`Using dynamically selected Gemini model: ${cachedGeminiModel}`);
+  return cachedGeminiModel;
+};
+
 const isIncluded = (ids = [], userId) => Boolean(userId && ids.some((id) => id.toString() === userId.toString()));
 
 const serializePost = (post, viewerId = null) => {
@@ -124,6 +207,64 @@ mongoose.connect(MONGODB_URI)
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected' });
+});
+
+app.post('/api/ai/blog-ideas', authMiddleware, async (req, res) => {
+  const focus = String(req.body?.focus || '').trim().slice(0, 240);
+  const title = String(req.body?.title || '').trim().slice(0, 180);
+  const excerpt = String(req.body?.excerpt || '').trim().slice(0, 500);
+  const content = String(req.body?.content || '').trim().slice(0, 1200);
+
+  if (!process.env.GEMINI_API_KEY) {
+    return res.json({ ideas: LOCAL_BLOG_IDEAS, source: 'local' });
+  }
+
+  const prompt = [
+    'You are an encouraging editorial coach for a blogging platform.',
+    'Suggest exactly five original blog post ideas for this writer.',
+    'Each idea must be practical, specific, and distinct from the others.',
+    'Return only valid JSON in this shape: {"ideas":[{"title":"...","angle":"...","why":"..."}]}.',
+    'Keep each field to one or two concise sentences. Do not include markdown fences.',
+    `Writer focus: ${focus || 'Open to a useful and authentic topic'}`,
+    `Current title: ${title || 'None yet'}`,
+    `Current excerpt: ${excerpt || 'None yet'}`,
+    `Current draft context: ${content || 'None yet'}`
+  ].join('\\n');
+
+  try {
+    const model = await getLatestGeminiModel();
+    const requestBody = {
+      systemInstruction: { parts: [{ text: 'Return concise, high-quality editorial suggestions as JSON only.' }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.85, responseMimeType: 'application/json' }
+    };
+    const requestGemini = (selectedModel) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(selectedModel)}:generateContent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': process.env.GEMINI_API_KEY
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    let response = await requestGemini(model);
+    if (!response.ok && model !== (process.env.GEMINI_MODEL_FALLBACK || DEFAULT_GEMINI_MODEL)) {
+      cachedGeminiModel = null;
+      cachedGeminiModelExpiresAt = 0;
+      response = await requestGemini(process.env.GEMINI_MODEL_FALLBACK || DEFAULT_GEMINI_MODEL);
+    }
+
+    if (!response.ok) {
+      console.error('Gemini request failed:', response.status, await response.text());
+      return res.json({ ideas: LOCAL_BLOG_IDEAS, source: 'local' });
+    }
+
+    const ideas = parseGeminiIdeas(getGeminiText(await response.json()));
+    return res.json({ ideas: ideas.length ? ideas : LOCAL_BLOG_IDEAS, source: ideas.length ? 'gemini' : 'local' });
+  } catch (err) {
+    console.error('Gemini blog idea generation failed:', err.message);
+    return res.json({ ideas: LOCAL_BLOG_IDEAS, source: 'local' });
+  }
 });
 
 // Authentication

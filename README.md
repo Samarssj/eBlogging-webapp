@@ -187,7 +187,11 @@ Create a `.env` file in the `backend/` directory:
 MONGODB_URI=your_mongodb_atlas_connection_string
 JWT_SECRET=your_jwt_secret_here
 PORT=5000
+# Enables personalized topic suggestions through Gemini.
+GEMINI_API_KEY=your_google_ai_studio_key
 ```
+
+The writing page now includes a **Topic spark** panel. It sends the writer's optional focus and current draft context to the Express backend, which keeps the Gemini key private and returns five structured blog ideas. The backend queries Gemini's model catalog, chooses the newest compatible model that supports `generateContent`, caches that choice for 15 minutes, and falls back to `gemini-flash-latest` if discovery is temporarily unavailable. If `GEMINI_API_KEY` is not set, the app shows local starter ideas so the workflow can still be reviewed offline.
 
 5. **Start the development server:**
 ```bash

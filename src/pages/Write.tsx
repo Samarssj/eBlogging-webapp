@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { PenTool, Eye, Save, Send, ArrowLeft, Loader2, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { PenTool, Eye, Save, Send, ArrowLeft, Loader2, Image as ImageIcon, ExternalLink, Sparkles, Lightbulb } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { api, ApiPost } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
+
+type BlogIdea = { title: string; angle: string; why: string };
 
 const Write = () => {
   const [title, setTitle] = useState('');
@@ -19,6 +21,10 @@ const Write = () => {
   const [isPreview, setIsPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingPost, setLoadingPost] = useState(false);
+  const [ideaFocus, setIdeaFocus] = useState('');
+  const [ideas, setIdeas] = useState<BlogIdea[]>([]);
+  const [ideaSource, setIdeaSource] = useState<'gemini' | 'local' | null>(null);
+  const [loadingIdeas, setLoadingIdeas] = useState(false);
   const navigate = useNavigate();
   const { postId } = useParams<{ postId: string }>();
   const isEditing = Boolean(postId);
@@ -49,6 +55,30 @@ const Write = () => {
     });
     return () => { active = false; };
   }, [navigate, postId, toast]);
+
+  const suggestBlogIdeas = async () => {
+    setLoadingIdeas(true);
+    try {
+      const result = await api.post<{ ideas: BlogIdea[]; source: 'gemini' | 'local' }>('/api/ai/blog-ideas', {
+        focus: ideaFocus,
+        title,
+        excerpt,
+        content
+      }, true);
+      setIdeas(result.ideas);
+      setIdeaSource(result.source);
+    } catch (error) {
+      toast({ title: 'Could not suggest topics', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      setLoadingIdeas(false);
+    }
+  };
+
+  const applyBlogIdea = (idea: BlogIdea) => {
+    setTitle(idea.title);
+    if (!excerpt.trim()) setExcerpt(idea.angle);
+    toast({ title: 'Idea added to your draft', description: 'Make it yours by adding your own perspective.' });
+  };
 
   const persistPost = async (status: 'draft' | 'published') => {
     if (!isAuthenticated()) {
@@ -155,7 +185,34 @@ const Write = () => {
             </CardContent>
           </Card>
 
-          <Card className="h-fit border-border/60 bg-gradient-card shadow-card lg:sticky lg:top-24">
+          <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card shadow-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="h-4 w-4 text-primary" /> Topic spark</CardTitle>
+                <p className="text-sm leading-5 text-muted-foreground">Not sure what to write next? Gemini can turn your interests and current draft into five starting points.</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Input value={ideaFocus} onChange={(e) => setIdeaFocus(e.target.value)} placeholder="Optional focus, e.g. creator habits" className="bg-background/70" />
+                <Button onClick={suggestBlogIdeas} disabled={loadingIdeas || loadingPost} className="w-full rounded-full">
+                  {loadingIdeas ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  {loadingIdeas ? 'Finding ideas...' : ideas.length ? 'Refresh ideas' : 'Suggest blog topics'}
+                </Button>
+                {ideaSource && <p className="text-center text-[11px] text-muted-foreground">{ideaSource === 'gemini' ? 'Personalized with Gemini' : 'Local starter ideas — add a Gemini key to personalize them'}</p>}
+                {ideas.length > 0 && (
+                  <div className="space-y-3 border-t border-border/60 pt-3">
+                    {ideas.map((idea) => (
+                      <div key={idea.title} className="rounded-xl border border-border/70 bg-background/70 p-3">
+                        <div className="flex items-start gap-2"><Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><h4 className="text-sm font-semibold leading-5">{idea.title}</h4></div>
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">{idea.angle}</p>
+                        <Button variant="ghost" size="sm" onClick={() => applyBlogIdea(idea)} className="mt-2 h-8 rounded-full px-3 text-xs text-primary hover:bg-primary/10 hover:text-primary">Use this idea</Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="h-fit border-border/60 bg-gradient-card shadow-card">
             <CardHeader><CardTitle className="text-lg">Publishing</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <Button onClick={() => persistPost('published')} disabled={saving || loadingPost} className="w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
@@ -171,7 +228,8 @@ const Write = () => {
                 <h4 className="mb-3 text-sm font-semibold italic text-muted-foreground text-center">Image tip: right-click the actual image and select "Copy image address." Paste that address—not the Unsplash webpage URL.</h4>
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
       </main>
     </div>
