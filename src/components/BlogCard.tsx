@@ -46,7 +46,8 @@ export const BlogCard = ({
   currentUserId
 }: BlogCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [saved, setLocalSaved] = useState(isSaved);
+  const [localSaved, setLocalSaved] = useState(Boolean(isSaved));
+  const saved = isSaved ?? localSaved;
   const { toast } = useToast();
 
   const handleShare = () => {

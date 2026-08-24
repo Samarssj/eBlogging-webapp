@@ -33,6 +33,9 @@ const postSchema = new mongoose.Schema({
   readTime: { type: String, default: '5 min' },
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   authorName: { type: String, required: true },
+  legacyId: { type: String, unique: true, sparse: true },
+  legacyLikes: { type: Number, default: null },
+  legacyComments: { type: Number, default: null },
   likes: { type: Number, default: 0 },
   likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   savedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
@@ -42,6 +45,18 @@ const postSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const Post = mongoose.model('Post', postSchema);
+
+const LEGACY_POSTS = [
+  { legacyId: '1', title: 'Designing with Purpose: A Guide to User-Centric Web Design', excerpt: 'Learn the fundamental principles of creating websites that truly serve their users and provide excellent user experience.', content: 'Full content would go here...', image: 'https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=2000', category: 'Design', authorName: 'Sarah Chen', legacyAuthorId: 'legacy-admin1', likes: 42, comments: 12, publishedAt: '2 hours ago', readTime: '5 min' },
+  { legacyId: '2', title: 'The Future of Web Development: What to Expect in 2024', excerpt: 'Exploring emerging trends in web development including AI integration, new frameworks, and the evolution of user expectations.', content: 'Full content would go here...', image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=2072', category: 'Technology', authorName: 'Alex Rodriguez', legacyAuthorId: 'legacy-admin2', likes: 128, comments: 34, publishedAt: '6 hours ago', readTime: '8 min' },
+  { legacyId: '3', title: 'Mastering TypeScript: From Beginner to Advanced', excerpt: 'A comprehensive guide to TypeScript that covers everything from basic types to advanced generics and utility types.', content: 'Full content would go here...', image: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&q=80&w=2128', category: 'Programming', authorName: 'Emily Watson', legacyAuthorId: 'legacy-admin3', likes: 89, comments: 21, publishedAt: '1 day ago', readTime: '12 min' },
+  { legacyId: '4', title: 'A Slow Morning in a Fast-Moving City', excerpt: 'Notes on attention, small rituals, and finding enough quiet to hear your own ideas arrive.', content: 'Full content would go here...', image: 'https://images.unsplash.com/photo-1449247709967-d4461a6a6103?auto=format&fit=crop&q=80&w=2071', category: 'Lifestyle', authorName: 'Maya Patel', legacyAuthorId: 'legacy-admin4', likes: 56, comments: 8, publishedAt: '2 days ago', readTime: '6 min' },
+  { legacyId: '5', title: 'The Creative Habit: Small Systems for Big Ideas', excerpt: 'A gentle framework for capturing sparks, protecting focus, and turning unfinished notes into work you are proud to share.', content: 'Full content would go here...', image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=2000', category: 'Creativity', authorName: 'Noah Williams', legacyAuthorId: 'legacy-admin5', likes: 72, comments: 15, publishedAt: '3 days ago', readTime: '7 min' },
+  { legacyId: '6', title: 'Building a Personal Knowledge Garden', excerpt: 'What happens when your notes become a living landscape instead of another folder full of links you never revisit.', content: 'Full content would go here...', image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=2000', category: 'Productivity', authorName: 'Owen Brooks', legacyAuthorId: 'legacy-admin6', likes: 94, comments: 19, publishedAt: '4 days ago', readTime: '9 min' },
+  { legacyId: '7', title: 'Why Curiosity Is a Better Career Compass Than Certainty', excerpt: 'The questions we keep returning to can reveal more about our next chapter than any five-year plan.', content: 'Full content would go here...', image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=2070', category: 'Perspective', authorName: 'Priya Shah', legacyAuthorId: 'legacy-admin7', likes: 63, comments: 11, publishedAt: '5 days ago', readTime: '8 min' },
+  { legacyId: '8', title: 'The Night Sky Is a Reminder to Think in Longer Timelines', excerpt: 'A field note on scale, patience, and the strange comfort of remembering that every breakthrough starts small.', content: 'Full content would go here...', image: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&q=80&w=2013', category: 'Science', authorName: 'Elias Green', legacyAuthorId: 'legacy-admin8', likes: 112, comments: 24, publishedAt: '1 week ago', readTime: '5 min' },
+  { legacyId: '9', title: 'The Quiet Power of a Well-Timed Refactor', excerpt: 'How to recognize when technical debt is slowing the team down and make improvements without stopping momentum.', content: 'Full content would go here...', image: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=2070', category: 'Engineering', authorName: 'Amara Okafor', legacyAuthorId: 'legacy-admin9', likes: 85, comments: 14, publishedAt: '1 week ago', readTime: '8 min' },
+];
 
 const commentSchema = new mongoose.Schema({
   post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
@@ -171,8 +186,9 @@ const serializePost = (post, viewerId = null) => {
     readTime: object.readTime,
     author: object.author?.toString(),
     authorName: object.authorName,
-    likes: object.likes || 0,
-    comments: object.comments || 0,
+    legacyId: object.legacyId,
+    likes: object.legacyLikes == null ? (object.likes || 0) : object.legacyLikes + (object.likedBy || []).length,
+    comments: object.legacyComments == null ? (object.comments || 0) : object.legacyComments + (object.comments || 0),
     status: object.status,
     publishedAt: object.publishedAt,
     createdAt: object.createdAt,
@@ -196,8 +212,31 @@ const serializeComment = (comment, viewerId = null) => ({
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
+const seedLegacyPosts = async () => {
+  for (const legacyPost of LEGACY_POSTS) {
+    const email = `${legacyPost.legacyAuthorId}@eblogging.invalid`;
+    const author = await User.findOneAndUpdate(
+      { email },
+      { $setOnInsert: { name: legacyPost.authorName, email, password: await bcrypt.hash(`legacy-${legacyPost.legacyId}`, 10) } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    let post = await Post.findOne({ legacyId: legacyPost.legacyId });
+    if (!post) {
+      const { legacyAuthorId, likes, comments, ...postData } = legacyPost;
+      post = await Post.create({ ...postData, author: author._id, legacyLikes: likes, legacyComments: comments, likes: 0, comments: 0 });
+    } else if (post.legacyLikes == null) {
+      post.legacyLikes = legacyPost.likes;
+      post.legacyComments = legacyPost.comments;
+      await post.save();
+    }
+  }
+};
+
 mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ SUCCESS: Connected to MongoDB Atlas'))
+  .then(async () => {
+    await seedLegacyPosts();
+    console.log('✅ SUCCESS: Connected to MongoDB Atlas and restored feed posts');
+  })
   .catch((err) => {
     console.error('❌ ERROR: MongoDB Connection Failed');
     console.error('Error Details:', err.message);
@@ -432,7 +471,8 @@ app.post('/api/posts/:id/like', authMiddleware, async (req, res) => {
     }
     post.likes = post.likedBy.length;
     await post.save();
-    res.json({ liked, likes: post.likes });
+    const likes = post.legacyLikes == null ? post.likes : post.legacyLikes + post.likedBy.length;
+    res.json({ liked, likes });
   } catch (err) {
     res.status(500).json({ message: 'Error updating like', error: err.message });
   }

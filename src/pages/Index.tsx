@@ -169,12 +169,16 @@ const Index = () => {
 
   const fetchPosts = async () => {
     try {
-      const dbPosts = await api.get('/api/posts');
+      const dbPosts = await api.get<any[]>('/api/posts', true);
       const formattedDbPosts = dbPosts.map((p: any) => ({
         ...p,
+        id: p.id || p._id,
         author: { id: p.author, name: p.authorName }
       }));
-      setPosts([...formattedDbPosts, ...mockPosts]);
+      const existingIds = new Set(formattedDbPosts.flatMap((post: any) => [post.id, post.legacyId].filter(Boolean)));
+      const existingTitles = new Set(formattedDbPosts.map((post: any) => post.title));
+      setLikedPosts(formattedDbPosts.filter((post: any) => post.likedByMe).map((post: any) => post.id));
+      setPosts([...formattedDbPosts, ...mockPosts.filter((post) => !existingIds.has(post.id) && !existingTitles.has(post.title))]);
     } catch (err) {
       setPosts(mockPosts);
     }
@@ -193,16 +197,27 @@ const Index = () => {
     return true;
   };
 
-  const handleLike = (postId: string) => {
+  const handleLike = async (postId: string) => {
     if (!checkAuth()) return;
-    const isLiked = likedPosts.includes(postId);
-    setLikedPosts(prev => isLiked ? prev.filter(id => id !== postId) : [...prev, postId]);
-    setPosts(prev => prev.map(post => 
-      post.id === postId || post._id === postId
-        ? { ...post, likes: isLiked ? post.likes - 1 : post.likes + 1 }
-        : post
-    ));
-    toast({ description: isLiked ? 'Removed from favorites' : 'Added to favorites ❤️' });
+    try {
+      const result = await api.post<{ liked: boolean; likes: number }>(`/api/posts/${postId}/like`, {}, true);
+      setLikedPosts((current) => result.liked ? [...new Set([...current, postId])] : current.filter((id) => id !== postId));
+      setPosts((current) => current.map((post) => post.id === postId || post._id === postId ? { ...post, likes: result.likes, likedByMe: result.liked } : post));
+      toast({ description: result.liked ? 'Added to favorites' : 'Removed from favorites' });
+    } catch (error: any) {
+      toast({ title: 'Could not update like', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleSave = async (postId: string) => {
+    if (!checkAuth()) return;
+    try {
+      const result = await api.post<{ saved: boolean }>(`/api/posts/${postId}/save`, {}, true);
+      setPosts((current) => current.map((post) => post.id === postId || post._id === postId ? { ...post, savedByMe: result.saved } : post));
+      toast({ description: result.saved ? 'Post saved' : 'Post removed from saved posts' });
+    } catch (error: any) {
+      toast({ title: 'Could not update saved posts', description: error.message, variant: 'destructive' });
+    }
   };
 
   const handleComment = (postId: string) => {
@@ -309,8 +324,10 @@ const Index = () => {
               onLike={handleLike}
               onComment={handleComment}
               onDelete={handleDelete}
+              onSave={handleSave}
               onOpen={(id) => navigate(`/story/${id}`)}
-              isLiked={likedPosts.includes(post.id || post._id)}
+              isLiked={Boolean(post.likedByMe || likedPosts.includes(post.id || post._id))}
+              isSaved={Boolean(post.savedByMe)}
               currentUserId={user?.id}
             />
           ))}
